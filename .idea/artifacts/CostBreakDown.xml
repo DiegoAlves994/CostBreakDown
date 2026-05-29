@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="CostBreakDown">
+    <output-path>$PROJECT_DIR$/out/artifacts/CostBreakDown</output-path>
+    <root id="archive" name="CostBreakDown.jar">
+      <element id="module-output" name="CostBreakDown" />
+    </root>
+  </artifact>
+</component>
