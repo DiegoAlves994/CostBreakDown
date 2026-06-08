@@ -7,6 +7,7 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.jape.wrapper.fluid.FluidCreateVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import sqls.SQLRepository;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -19,7 +20,7 @@ public class ComposicaoProduto {
         JdbcWrapper JDBC = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
         NativeSql sql = new NativeSql(JDBC);
 
-        sql.loadSql(getClass(), "Composicao.sql");
+        sql.loadSql(SQLRepository.class, "Composicao.sql");
         sql.setNamedParameter("P_NUNICO", nunico);
         ResultSet rsComposicao = sql.executeQuery();
 
@@ -34,7 +35,7 @@ public class ComposicaoProduto {
                 String descrAbrev = rsComposicao.getString("DESCRABREV");
                 String codvol = rsComposicao.getString("CODVOL");
                 BigDecimal idefx = rsComposicao.getBigDecimal("ID_ATIVIDADE");
-                BigDecimal versao = rsComposicao.getBigDecimal("VERSAO");
+                BigDecimal versao = rsComposicao.getBigDecimal("VERSAO_PROCESSO");
                 BigDecimal qtdmistura = rsComposicao.getBigDecimal("QTDMISTURA");
                 String atividade = rsComposicao.getString("ATIVIDADE");
                 BigDecimal cusMedIcm = rsComposicao.getBigDecimal("CUSMEDICM");
@@ -42,8 +43,9 @@ public class ComposicaoProduto {
 
 
 
+
                 JapeWrapper insertMp = JapeFactory.dao("AD_ZBVITE");
-                ((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)insertTerc.create()
+                ((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)((FluidCreateVO)insertMp.create()
                         .set("NUNICO", nunico))
                         .set("SEQ",  seqMp))
                         .set("CODPROD", codProdMp))
@@ -54,6 +56,7 @@ public class ComposicaoProduto {
                         .set("VLRUNIT",cusMedIcm))
                         .set("VLRUNITSEMICMS",cusSemIcm))
                         .set("QTDLIQUIDO",qtdmistura))
+                        .set("TIPO","I"))
                         .save();
 
 
@@ -67,4 +70,53 @@ public class ComposicaoProduto {
                 JDBC.closeSession();
         }
     }
+
+    public void validaComposicao( ContextoAcao ctx, BigDecimal nunico) throws Exception {
+
+        JdbcWrapper jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
+        NativeSql sql = new NativeSql(jdbc);
+        sql.loadSql(SQLRepository.class, "ValidaComposicao.sql");
+        sql.setNamedParameter("P_NUNICO", nunico);
+        ResultSet rsValida = sql.executeQuery();
+
+        try {
+            while(rsValida.next()){
+
+                int valida = rsValida.getInt("VALIDA");
+
+                if (valida == 1) {
+                    return;
+                }
+
+                int codProd = rsValida.getInt("CODPROD");
+                String descrProd = rsValida.getString("DESCRPROD");
+                int idProc = rsValida.getInt("IDPROC");
+                String descrProcesso = rsValida.getString("DESCRABREV");
+                int versao = rsValida.getInt("VERSAO");
+
+                throw new Exception(
+                        "Não é possível continuar." +
+                                "O produto selecionado no orçamento: " +
+                                codProd + " - " + descrProd +
+                                ", não existe no processo produtivo: " +
+                                idProc + " - " + descrProcesso +
+                                " (versão " + versao + ")." +
+                                "Não foi possível determinar sua composição."
+                );
+
+
+            }
+
+
+
+        } finally {
+
+            rsValida.close();
+            NativeSql.releaseResources(sql);
+            jdbc.closeSession();
+
+        }
+    }
+
+
 }

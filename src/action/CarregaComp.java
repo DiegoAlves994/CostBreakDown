@@ -23,9 +23,14 @@ public class CarregaComp implements AcaoRotinaJava {
 
             BigDecimal nunico = ((BigDecimal) linha.getCampo("NUNICO"));
 
+
+
             ComposicaoProduto composicaoProduto = new ComposicaoProduto();
+
+            composicaoProduto.validaComposicao(arg0, nunico);
             composicaoProduto.getMpComposicao(arg0, nunico);
 
+            arg0.setMensagemRetorno("Carga de dados concluída com sucesso!");
 
 
         }
