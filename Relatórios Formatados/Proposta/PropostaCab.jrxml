@@ -1,0 +1,858 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FORMACAO_CUSTO" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.2100000000000117"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="173"/>
+	<parameter name="PK_NUNICO" class="java.math.BigDecimal"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH MKP AS (
+    SELECT *
+    FROM (
+        SELECT M.*,
+               ROW_NUMBER() OVER (PARTITION BY NUNICO ORDER BY SEQ DESC) RN
+        FROM AD_ZBVMKP M
+    )
+    WHERE RN = 1
+),
+
+EMPRESA AS (
+    SELECT RAZAOSOCIAL
+    FROM TSIEMP
+    WHERE CODEMP = 1
+),
+
+MP AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL(QTDBRUTO * VLRUNITSEMICMS, 0)
+            - NVL(QTDSUCATA * VLRSUCATA, 0)
+            + NVL(VLRFRETE, 0)
+        ) AS TOTAL_MP
+    FROM AD_ZBVITE
+    GROUP BY NUNICO
+),
+
+CIP AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL(VLRCUSTOPROCESSO / NULLIF(QTDPECAS, 0), 0)
+        ) AS TOTAL_CIP
+    FROM AD_ZBVCIP
+    GROUP BY NUNICO
+),
+
+OUTR AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL((QUANTIDADE * VLRUNIT) + VLRFRETE, 0)
+        ) AS TOTAL_OUTROS
+    FROM AD_ZBVOUT
+    GROUP BY NUNICO
+),
+
+FRE AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL((DISTANCIA * CUSTOKM) / NULLIF(QTDPECAS, 0), 0)
+        ) AS VLRFRETE
+    FROM AD_ZBVFRE
+    GROUP BY NUNICO
+),
+
+AMO AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL(VLRTOT / NULLIF(QTDPECA, 0), 0)
+        ) AS VLRAMORTIZACAO
+    FROM AD_ZBVAMO
+    GROUP BY NUNICO
+),
+
+CALCULOS_BASE AS (
+
+    SELECT
+        CAB.NUNICO,
+        CAB.PESO,
+        CAB.DESENHO,
+        CAB.SCRAP,
+        CAB.DENOMINACAO,
+        CAB.VOLUME,
+        CAB.NIVEL,
+        CAB.MOEDA,
+        CAB.REVISAO,
+        CAB.DATA,
+        CAB.OBSERVACAO,
+        CAB.CODPARC,
+        CAB.CODPROJ,
+
+        PAR.NOMEPARC,
+        PRJ.IDENTIFICACAO AS PROJETO,
+
+        NVL(MKP.ICMS,0)      AS ICMS,
+        NVL(MKP.SGA,0)       AS SGA,
+        NVL(MKP.LUCRO,0)     AS LUCRO,
+        NVL(MKP.PISCOFINS,0) AS PISCOFINS,
+        NVL(MKP.IRPJCSLL,0)  AS IRPJCSLL,
+        NVL(MKP.OUTROS,0)    AS OUTROS,
+
+        NVL(MP.TOTAL_MP,0)      AS T_MP,
+        NVL(CIP.TOTAL_CIP,0)    AS T_CIP,
+        NVL(OUTR.TOTAL_OUTROS,0) AS T_OUTR,
+        NVL(FRE.VLRFRETE,0)     AS T_FRETE,
+        NVL(AMO.VLRAMORTIZACAO,0) AS T_AMORT,
+
+        (
+            NVL(MP.TOTAL_MP,0)
+            + NVL(CIP.TOTAL_CIP,0)
+            + NVL(OUTR.TOTAL_OUTROS,0)
+        ) AS CUSTOBASE,
+
+        (
+            (
+                NVL(MP.TOTAL_MP,0)
+                + NVL(CIP.TOTAL_CIP,0)
+                + NVL(OUTR.TOTAL_OUTROS,0)
+            )
+            * (1 + NVL(CAB.SCRAP,0)/100)
+            + NVL(FRE.VLRFRETE,0)
+            + NVL(AMO.VLRAMORTIZACAO,0)
+        ) AS CUSTO_TOTAL_COM_IMPACTOS,
+
+        (
+            NVL(MKP.ICMS,0)
+          + NVL(MKP.SGA,0)
+          + NVL(MKP.LUCRO,0)
+          + NVL(MKP.PISCOFINS,0)
+          + NVL(MKP.IRPJCSLL,0)
+          + NVL(MKP.OUTROS,0)
+        ) AS PERC_TOTAL_MKP,
+	CAB.LOTEMIN,
+    CAB.INFOADICIONAL,
+    CAB.OBSERVACAOPROPOSTA,
+    CAB.CODUSUINC,
+    USU.NOMEUSU,
+     USU.EMAIL
+
+
+    FROM AD_ZBVCAB CAB
+         LEFT JOIN TGFPAR PAR
+            ON PAR.CODPARC = CAB.CODPARC
+         LEFT JOIN TCSPRJ PRJ
+            ON PRJ.CODPROJ = CAB.CODPROJ
+         LEFT JOIN MKP
+            ON MKP.NUNICO = CAB.NUNICO
+         LEFT JOIN MP
+            ON MP.NUNICO = CAB.NUNICO
+         LEFT JOIN CIP
+            ON CIP.NUNICO = CAB.NUNICO
+         LEFT JOIN OUTR
+            ON OUTR.NUNICO = CAB.NUNICO
+         LEFT JOIN FRE
+            ON FRE.NUNICO = CAB.NUNICO
+         LEFT JOIN AMO
+            ON AMO.NUNICO = CAB.NUNICO
+         LEFT JOIN TSIUSU USU
+            ON USU.CODUSU = CAB.CODUSUINC
+
+    WHERE CAB.NUNICO = $P{PK_NUNICO}
+),
+
+RESULTADOS AS (
+
+    SELECT
+
+        B.*,
+
+        ROUND(
+            1 /
+            NULLIF(
+                1 - (B.PERC_TOTAL_MKP / 100),
+                0
+            ),
+            10
+        ) AS FATOR,
+
+        ROUND(
+            B.CUSTO_TOTAL_COM_IMPACTOS
+            *
+            (
+                (
+                    1 /
+                    NULLIF(
+                        1 - (B.PERC_TOTAL_MKP / 100),
+                        0
+                    )
+                ) - 1
+            ),
+            10
+        ) AS VLR_TOTAL_MKP,
+
+        ROUND(
+            B.CUSTO_TOTAL_COM_IMPACTOS
+            *
+            (
+                1 /
+                NULLIF(
+                    1 - (B.PERC_TOTAL_MKP / 100),
+                    0
+                )
+            ),
+            10
+        ) AS PRECO_VENDA
+
+    FROM CALCULOS_BASE B
+)
+
+SELECT
+
+    R.NUNICO,
+    R.PESO,
+
+    R.CODPARC || ' - ' || R.NOMEPARC AS CLIENTE,
+
+    R.DESENHO,
+    NVL(R.SCRAP,0) AS SCRAP,
+    R.DENOMINACAO,
+    R.PROJETO,
+    R.VOLUME,
+    R.NIVEL,
+    R.MOEDA,
+    R.REVISAO,
+    R.DATA,
+    R.OBSERVACAO,
+
+    EMP.RAZAOSOCIAL,
+
+    R.ICMS,
+    R.SGA,
+    R.LUCRO,
+    R.PISCOFINS,
+    R.IRPJCSLL,
+    R.OUTROS,
+
+    ROUND(R.T_MP,2)      AS TOTAL_MP,
+    ROUND(R.T_CIP,2)     AS TOTAL_CIP,
+    ROUND(R.T_OUTR,2)    AS TOTAL_OUTROS,
+
+    ROUND(R.CUSTOBASE,2) AS SUBTOTAL,
+
+    ROUND(
+        R.CUSTOBASE * (NVL(R.SCRAP,0)/100),
+        2
+    ) AS VLRSCRAP,
+
+    ROUND(R.T_FRETE,2) AS VLRFRETE,
+    ROUND(R.T_AMORT,2) AS VLRAMORTIZACAO,
+
+    ROUND(R.CUSTO_TOTAL_COM_IMPACTOS,2) AS CUSTO_BASE,
+
+    ROUND(
+        R.PRECO_VENDA
+        *
+        (
+            (NVL(R.SGA,0) + NVL(R.LUCRO,0))
+            / 100
+        ),
+        2
+    ) AS VLR_SGA_LUCRO,
+
+    ROUND(
+        R.CUSTO_TOTAL_COM_IMPACTOS
+        +
+        (
+            R.PRECO_VENDA
+            *
+            (
+                (NVL(R.SGA,0) + NVL(R.LUCRO,0))
+                / 100
+            )
+        ),
+        2
+    ) AS PRECOSEMIMPOSTO,
+
+    ROUND(R.FATOR,5) AS FATOR,
+
+    ROUND(R.VLR_TOTAL_MKP,2) AS VLR_TOTAL_MKP,
+
+    ROUND(R.PRECO_VENDA,2) AS PRECOCOMIMPOSTO,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.SGA,0)/100) VLR_SGA,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.LUCRO,0)/100) VLR_LUCRO,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.ICMS,0)/100) VLR_ICMS,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.PISCOFINS,0)/100) VLR_PISCOFINS,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.IRPJCSLL,0)/100) VLR_IRPJCSLL,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.OUTROS,0)/100) VLR_OUTROS,
+	 NVL(R.LOTEMIN,0)LOTEMIN,
+      R.INFOADICIONAL,
+      R.OBSERVACAOPROPOSTA,
+      R.CODUSUINC,
+      R.NOMEUSU,
+      R.EMAIL
+
+FROM RESULTADOS R
+CROSS JOIN EMPRESA EMP]]>
+	</queryString>
+	<field name="CLIENTE" class="java.lang.String"/>
+	<field name="DESENHO" class="java.lang.String"/>
+	<field name="DENOMINACAO" class="java.lang.String"/>
+	<field name="PROJETO" class="java.lang.String"/>
+	<field name="VOLUME" class="java.lang.String"/>
+	<field name="NIVEL" class="java.lang.String"/>
+	<field name="MOEDA" class="java.lang.String"/>
+	<field name="REVISAO" class="java.lang.String"/>
+	<field name="DATA" class="java.sql.Timestamp"/>
+	<field name="OBSERVACAO" class="java.lang.String"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="NUNICO" class="java.lang.Integer"/>
+	<field name="PESO" class="java.lang.String"/>
+	<field name="SCRAP" class="java.math.BigDecimal"/>
+	<field name="ICMS" class="java.math.BigDecimal"/>
+	<field name="SGA" class="java.math.BigDecimal"/>
+	<field name="LUCRO" class="java.math.BigDecimal"/>
+	<field name="PISCOFINS" class="java.math.BigDecimal"/>
+	<field name="IRPJCSLL" class="java.math.BigDecimal"/>
+	<field name="OUTROS" class="java.math.BigDecimal"/>
+	<field name="SUBTOTAL" class="java.math.BigDecimal"/>
+	<field name="VLRSCRAP" class="java.math.BigDecimal"/>
+	<field name="VLRFRETE" class="java.math.BigDecimal"/>
+	<field name="VLRAMORTIZACAO" class="java.math.BigDecimal"/>
+	<field name="CUSTO_BASE" class="java.math.BigDecimal"/>
+	<field name="PRECOSEMIMPOSTO" class="java.math.BigDecimal"/>
+	<field name="FATOR" class="java.math.BigDecimal"/>
+	<field name="VLR_TOTAL_MKP" class="java.math.BigDecimal"/>
+	<field name="PRECOCOMIMPOSTO" class="java.math.BigDecimal"/>
+	<field name="VLR_SGA" class="java.math.BigDecimal"/>
+	<field name="VLR_LUCRO" class="java.math.BigDecimal"/>
+	<field name="VLR_ICMS" class="java.math.BigDecimal"/>
+	<field name="VLR_PISCOFINS" class="java.math.BigDecimal"/>
+	<field name="VLR_IRPJCSLL" class="java.math.BigDecimal"/>
+	<field name="VLR_OUTROS" class="java.math.BigDecimal"/>
+	<field name="VLR_SGA_LUCRO" class="java.math.BigDecimal"/>
+	<field name="LOTEMIN" class="java.math.BigDecimal"/>
+	<field name="INFOADICIONAL" class="java.lang.String"/>
+	<field name="OBSERVACAOPROPOSTA" class="java.lang.String"/>
+	<field name="CODUSUINC" class="java.math.BigDecimal"/>
+	<field name="NOMEUSU" class="java.lang.String"/>
+	<field name="EMAIL" class="java.lang.String"/>
+	<variable name="TOTALMP" class="java.math.BigDecimal"/>
+	<variable name="TOTALPROCESSO" class="java.math.BigDecimal"/>
+	<variable name="TOTALOUTROS" class="java.math.BigDecimal"/>
+	<variable name="TOTALAMORTIZACAO" class="java.math.BigDecimal"/>
+	<variable name="TOTALFRETE" class="java.math.BigDecimal"/>
+	<variable name="PERCENTUALMKP" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{SGA}.add($F{ICMS}).add($F{LUCRO}).add($F{PISCOFINS}).add($F{IRPJCSLL}).add($F{OUTROS})]]></variableExpression>
+	</variable>
+	<variable name="TOTALMKP" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[(
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.add(
+            ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+)
+.multiply(
+    java.math.BigDecimal.ONE.divide(
+        java.math.BigDecimal.ONE.subtract(
+            ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        ),
+        10,
+        java.math.RoundingMode.HALF_UP
+    )
+    .subtract(java.math.BigDecimal.ONE)
+)]]></variableExpression>
+	</variable>
+	<variable name="TOTALCUSTOINDUSTRIAL" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[(
+    ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+        .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+        .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+)
+.multiply(
+    java.math.BigDecimal.ONE.add(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)]]></variableExpression>
+	</variable>
+	<variable name="V_ICMS" class="java.math.BigDecimal" resetType="None" calculation="Sum">
+		<variableExpression><![CDATA[((
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.add(
+            ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+)
+.multiply(
+    java.math.BigDecimal.ONE.divide(
+        java.math.BigDecimal.ONE.subtract(
+            ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        ),
+        10,
+        java.math.RoundingMode.HALF_UP
+    )
+    .subtract(java.math.BigDecimal.ONE)
+).add((
+    ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+        .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+        .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+)
+.multiply(
+    java.math.BigDecimal.ONE.add(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)).add(($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})).add(($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}))).multiply(
+    ($F{ICMS} == null ? java.math.BigDecimal.ZERO : $F{ICMS})
+        .divide(
+            new java.math.BigDecimal("100"),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+)]]></variableExpression>
+	</variable>
+	<title>
+		<band height="352">
+			<staticText>
+				<reportElement x="0" y="0" width="432" height="18"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PROPOSTA COMERCIAL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="433" y="1" width="122" height="18"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cotação Nº:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="1" y="17" width="431" height="25"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="42" width="554" height="1"/>
+			</line>
+			<line>
+				<reportElement x="1" y="0" width="554" height="1"/>
+			</line>
+			<textField>
+				<reportElement x="433" y="19" width="122" height="25"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NUNICO}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="433" y="19" width="121" height="1"/>
+			</line>
+			<line>
+				<reportElement x="555" y="1" width="1" height="42"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="43"/>
+			</line>
+			<line>
+				<reportElement x="432" y="1" width="1" height="42"/>
+			</line>
+			<line>
+				<reportElement x="0" y="41" width="1" height="174"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="2" y="66" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PROJETO:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="3" y="84" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[NÍVEL ECONÔMICO:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="3" y="102" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[MOEDA:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="3" y="120" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[REVISÃO:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="3" y="138" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DATA:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="215" width="556" height="1"/>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="115" y="48" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CLIENTE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="115" y="66" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PROJETO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="116" y="84" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NIVEL}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="116" y="102" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MOEDA}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="116" y="120" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{REVISAO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="116" y="138" width="200" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DATA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="2" y="48" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CLIENTE:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="555" y="37" width="1" height="178"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="165" width="83" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DESENHO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="84" y="165" width="136" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DENOMINAÇÃO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="220" y="165" width="84" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VOLUME ANUAL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="304" y="165" width="84" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PREÇO S/ IMPOSTOS (R$)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="388" y="165" width="83" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PREÇO C/ IMPOSTOS (R$)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="471" y="165" width="84" height="34" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[LOTE MÍNIMO (PEÇAS)]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="1" y="200" width="83" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESENHO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="84" y="200" width="136" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DENOMINACAO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="220" y="200" width="84" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VOLUME}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="304" y="200" width="84" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PRECOSEMIMPOSTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="388" y="200" width="84" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PRECOCOMIMPOSTO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="472" y="200" width="83" height="15" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{LOTEMIN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="226" width="555" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INFORMAÇÕES ADICIONAIS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="0" y="242" width="555" height="104" isRemoveLineWhenBlank="true" isPrintInFirstWholeBand="true" backcolor="#CCCCCC"/>
+				<box>
+					<leftPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement>
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{INFOADICIONAL}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="7">
+			<subreport>
+				<reportElement key="INVESTIMENTO" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="1" width="554" height="4" isRemoveLineWhenBlank="true"/>
+				<subreportParameter name="PK_NUNICO">
+					<subreportParameterExpression><![CDATA[$F{NUNICO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "INVESTIMENTO.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="157">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="2" width="555" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[OBSERVAÇÕES]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="0" y="18" width="555" height="104" isRemoveLineWhenBlank="true" isPrintInFirstWholeBand="true" isPrintWhenDetailOverflows="true" backcolor="#CCCCCC"/>
+				<box>
+					<leftPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement>
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBSERVACAOPROPOSTA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="127" width="220" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ELABORADO POR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="220" y="127" width="231" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[EMAIL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="451" y="127" width="105" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DATA]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="0" y="142" width="220" height="15" backcolor="#CCCCCC"/>
+				<box>
+					<leftPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEUSU}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="221" y="142" width="231" height="15" backcolor="#CCCCCC"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMAIL}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="452" y="142" width="104" height="15" backcolor="#CCCCCC"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DATA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

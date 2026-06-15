@@ -14,20 +14,11 @@ import java.sql.ResultSet;
 public class ValidaPendente implements EventoProgramavelJava {
     @Override
     public void beforeInsert(PersistenceEvent persistenceEvent) throws Exception {
-        DynamicVO novoVO = (DynamicVO) persistenceEvent.getVo();
-        DynamicVO oldVO = (DynamicVO) persistenceEvent.getOldVO();
-        BigDecimal nunico = novoVO.asBigDecimal("NUNICO");
-
-        if (novoVO.getElementName().contains("PENDENTE")) {
-
-            String pendente = novoVO.asString("PENDENTE");
-
-            if ("S".equals(pendente)){
-                return;
-            }
-        }
-
+        DynamicVO vo = (DynamicVO) persistenceEvent.getVo();
+        BigDecimal nunico = vo.asBigDecimal("NUNICO");
         validarCabecalhoPendente(nunico);
+
+
 
     }
 

@@ -29,6 +29,8 @@ public class CarregaComp implements AcaoRotinaJava {
 
             composicaoProduto.validaComposicao(arg0, nunico);
             composicaoProduto.getMpComposicao(arg0, nunico);
+            composicaoProduto.getTarifaCipAtv(arg0, nunico);
+            composicaoProduto.getTarifaCipPrc(arg0, nunico);
 
             arg0.setMensagemRetorno("Carga de dados concluída com sucesso!");
 

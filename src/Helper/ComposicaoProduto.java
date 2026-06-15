@@ -11,7 +11,6 @@ import sqls.SQLRepository;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class ComposicaoProduto {
 
@@ -50,7 +49,7 @@ public class ComposicaoProduto {
                         .set("SEQ",  seqMp))
                         .set("CODPROD", codProdMp))
                         .set("CODVOL", codvol))
-                        .set("DESCRATIVIDADE", descrAbrev))
+                        .set("DESCRATIVIDADE", atividade))
                         .set("IDEFX", idefx))
                         .set("QTDBRUTO", qtdmistura))
                         .set("VLRUNIT",cusMedIcm))
@@ -69,6 +68,114 @@ public class ComposicaoProduto {
                 NativeSql.releaseResources(sql);
                 JDBC.closeSession();
         }
+    }
+
+
+    public void getTarifaCipAtv (ContextoAcao ctx, BigDecimal nunico) throws Exception {
+
+        JdbcWrapper JDBC = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
+        NativeSql sql = new NativeSql(JDBC);
+
+
+        sql.loadSql(SQLRepository.class, "CipAtividade.sql");
+        sql.setNamedParameter("P_NUNICO", nunico);
+        ResultSet rsComposicao = sql.executeQuery();
+
+        try{
+            while (rsComposicao.next()) {
+
+                BigDecimal seqMp = rsComposicao.getBigDecimal("SEQMP");
+                BigDecimal codProdtar = rsComposicao.getBigDecimal("CODPRODTAR");
+                String codvol = rsComposicao.getString("CODVOL");
+                BigDecimal idefx = rsComposicao.getBigDecimal("ID_ATIVIDADE");
+                BigDecimal qtd = rsComposicao.getBigDecimal("QTD");
+                String atividade = rsComposicao.getString("ATIVIDADE");
+                BigDecimal cusMedIcm = rsComposicao.getBigDecimal("CUSMEDICM");
+                BigDecimal cusSemIcm = rsComposicao.getBigDecimal("CUSSEMICM");
+
+                JapeWrapper insertMp = JapeFactory.dao("AD_ZBVCIP");
+                ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) insertMp.create()
+                        .set("NUNICO", nunico))
+                        .set("SEQ", seqMp))
+                        .set("CODPROD", codProdtar))
+                        .set("CODVOL", codvol))
+                        .set("DESCRATIVIDADE", atividade))
+                        .set("IDEFX", idefx))
+                        .set("QTD", qtd))
+                        .set("VLRCUSTOPROCESSO",
+                                cusMedIcm))
+                        .set("TIPO", "I"))
+                        .save();
+
+            }
+
+
+
+
+        }
+            finally{
+
+            rsComposicao.close();
+            NativeSql.releaseResources(sql);
+            JDBC.closeSession();
+
+        }
+
+
+
+    }
+
+
+    public void getTarifaCipPrc (ContextoAcao ctx, BigDecimal nunico) throws Exception {
+
+        JdbcWrapper JDBC = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
+        NativeSql sql = new NativeSql(JDBC);
+
+        sql.loadSql(SQLRepository.class, "CipProcesso.sql");
+        sql.setNamedParameter("P_NUNICO", nunico);
+        ResultSet rsComposicao = sql.executeQuery();
+
+        try{
+            while (rsComposicao.next()) {
+
+                BigDecimal seqMp = rsComposicao.getBigDecimal("SEQMP");
+                BigDecimal codProdtar = rsComposicao.getBigDecimal("CODPRODTAR");
+                String codvol = rsComposicao.getString("CODVOL");
+                BigDecimal qtd = rsComposicao.getBigDecimal("QTD");
+                String atividade = rsComposicao.getString("ATIVIDADE");
+                BigDecimal cusMedIcm = rsComposicao.getBigDecimal("CUSMEDICM");
+                BigDecimal cusSemIcm = rsComposicao.getBigDecimal("CUSSEMICM");
+
+                JapeWrapper insertMp = JapeFactory.dao("AD_ZBVCIP");
+                 ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) ((FluidCreateVO) insertMp.create()
+                        .set("NUNICO", nunico))
+                        .set("SEQ", seqMp))
+                        .set("CODPROD", codProdtar))
+                        .set("CODVOL", codvol))
+                        .set("DESCRATIVIDADE", atividade))
+                        .set("QTD", qtd))
+                        .set("VLRCUSTOPROCESSO",
+                                cusMedIcm))
+                        .set("TIPO", "I"))
+                        .save();
+
+            }
+
+
+
+
+        }
+        finally{
+
+            rsComposicao.close();
+            NativeSql.releaseResources(sql);
+            JDBC.closeSession();
+
+        }
+
+
+
+
     }
 
     public void validaComposicao( ContextoAcao ctx, BigDecimal nunico) throws Exception {
