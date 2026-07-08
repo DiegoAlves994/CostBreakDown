@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FRETE" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.9487171000000014"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="PK_NUNICO" class="java.lang.Integer" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[SELECT
+FRE.SEQ,
+(Select OPCAO
+  from tddopc p
+ where p.nucampo = 9999992195
+ AND P.VALOR = FRE.CIF_FOB) TIPO,
+SUBSTR(PAR.NOMEPARC,1,30)NOMEPARC,
+FRE.SAIDA,
+FRE.LOCALENTREGA,
+FRE.VEICULO,
+FRE.DISTANCIA,
+FRE.CUSTOKM,
+FRE.QTDPECAS,
+NVL(((FRE.DISTANCIA*FRE.CUSTOKM)/FRE.QTDPECAS),0) CUSTO_FRETE
+
+
+ FROM AD_ZBVFRE FRE
+ LEFT JOIN TGFPAR PAR ON PAR.CODPARC = FRE.CODPARC
+WHERE FRE.NUNICO = $P{PK_NUNICO}]]>
+	</queryString>
+	<field name="SEQ" class="java.lang.Integer"/>
+	<field name="TIPO" class="java.lang.String"/>
+	<field name="NOMEPARC" class="java.lang.String"/>
+	<field name="SAIDA" class="java.lang.String"/>
+	<field name="LOCALENTREGA" class="java.lang.String"/>
+	<field name="VEICULO" class="java.lang.String"/>
+	<field name="DISTANCIA" class="java.math.BigDecimal"/>
+	<field name="CUSTOKM" class="java.math.BigDecimal"/>
+	<field name="QTDPECAS" class="java.math.BigDecimal"/>
+	<field name="CUSTO_FRETE" class="java.math.BigDecimal"/>
+	<variable name="V_CUSTOFRETE" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{CUSTO_FRETE}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="35" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="15" width="53" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TIPO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="555" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FRETE]]></text>
+			</staticText>
+			<line>
+				<reportElement x="54" y="15" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="55" y="15" width="126" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TRANSPORTADORA]]></text>
+			</staticText>
+			<line>
+				<reportElement x="181" y="15" width="1" height="19"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="34"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="182" y="15" width="52" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FRETE SAÍDA DE:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="233" y="15" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="234" y="15" width="83" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[LOCAL DE ENTREGA]]></text>
+			</staticText>
+			<line>
+				<reportElement x="317" y="15" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="318" y="15" width="53" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[VEÍCULO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="371" y="15" width="55" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[DISTÂNCIA (KM IDA E VOLTA)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="370" y="15" width="1" height="19"/>
+			</line>
+			<line>
+				<reportElement x="425" y="15" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="426" y="15" width="37" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[CUSTO/
+KM]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="463" y="15" width="37" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[QUANT. PEÇAS
+]]></text>
+			</staticText>
+			<line>
+				<reportElement x="462" y="15" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="501" y="15" width="54" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[CUSTO
+FRETE]]></text>
+			</staticText>
+			<line>
+				<reportElement x="500" y="15" width="1" height="19"/>
+			</line>
+			<line>
+				<reportElement x="554" y="0" width="1" height="35"/>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TIPO}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="55" y="0" width="127" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="182" y="0" width="52" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{SAIDA}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="318" y="0" width="52" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VEICULO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="370" y="0" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DISTANCIA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.0000" isBlankWhenNull="true">
+				<reportElement x="425" y="0" width="37" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CUSTOKM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="463" y="0" width="38" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDPECAS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.0000" isBlankWhenNull="true">
+				<reportElement x="501" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CUSTO_FRETE}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="234" y="0" width="84" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{LOCALENTREGA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="16" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="0" width="433" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<leftPen lineWidth="1.0" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CUSTO TOTAL DO FRETE P/ PEÇA:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="2" y="15" width="553" height="1"/>
+			</line>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="434" y="0" width="121" height="15"/>
+				<box>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{V_CUSTOFRETE}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

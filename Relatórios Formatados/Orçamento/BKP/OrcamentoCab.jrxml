@@ -1,152 +1,281 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FORMACAO_CUSTO" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
-	<property name="ireport.zoom" value="1.2100000000000024"/>
+	<property name="ireport.zoom" value="1.3310000000000097"/>
 	<property name="ireport.x" value="0"/>
-	<property name="ireport.y" value="0"/>
+	<property name="ireport.y" value="167"/>
 	<parameter name="PK_NUNICO" class="java.math.BigDecimal"/>
 	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
 	</parameter>
 	<queryString>
-		<![CDATA[WITH MKP AS
-  (SELECT *
-   FROM
-     (SELECT M.*,
-             ROW_NUMBER() OVER (PARTITION BY NUNICO
-                                ORDER BY SEQ DESC) RN
-      FROM AD_ZBVMKP M)
-   WHERE RN = 1),
-     EMPRESA AS
-  (SELECT RAZAOSOCIAL
-   FROM TSIEMP
-   WHERE CODEMP = 1),
-     MP AS
-  (SELECT NUNICO,
-          SUM(NVL((QTDBRUTO*VLRUNITSEMICMS),0) - (NVL(QTDBRUTO-QTDLIQUIDO, 0)*NVL(VLRSUCATA, 0)) + NVL(VLRFRETE, 0)) AS TOTAL_MP
-   FROM AD_ZBVITE
-   GROUP BY NUNICO),
-     CIP AS
-  (SELECT NUNICO,
-          SUM(NVL(VLRCUSTOPROCESSO, 0)*NVL(QTD, 0)) AS TOTAL_CIP
-   FROM AD_ZBVCIP
-   GROUP BY NUNICO),
-     OUTR AS
-  (SELECT NUNICO,
-          SUM(NVL((QUANTIDADE * VLRUNIT) + VLRFRETE, 0)) AS TOTAL_OUTROS
-   FROM AD_ZBVOUT
-   GROUP BY NUNICO),
-     FRE AS
-  (SELECT NUNICO,
-          SUM(NVL((DISTANCIA * CUSTOKM) / NULLIF(QTDPECAS, 0), 0)) AS VLRFRETE
-   FROM AD_ZBVFRE
-   GROUP BY NUNICO),
-     AMO AS
-  (SELECT INV.NUNICO,
-          NVL(SUM(INV.QUANTIDADE * INV.CUSTO), 0) AS VLRAMORTIZACAO,
-          CAB.VOLUME AS QTDAMORTIZACAO,
-          NVL(SUM(INV.QUANTIDADE * INV.CUSTO), 0) / NULLIF(CAB.VOLUME, 0) AS VLRUNITAMOR
-   FROM AD_ZBVINV INV
-   JOIN AD_ZBVCAB CAB ON CAB.NUNICO = INV.NUNICO
-   GROUP BY INV.NUNICO,
-            CAB.VOLUME),
-     CALCULOS_BASE AS
-  (SELECT CAB.NUNICO,
-          CAB.PESO,
-          CAB.DESENHO,
-          CAB.SCRAP,
-          CAB.DENOMINACAO,
-          CAB.VOLUME,
-          CAB.NIVEL,
-          CAB.MOEDA,
-          CAB.REVISAO,
-          CAB.DATA,
-          CAB.OBSERVACAO,
-          CAB.CODPARC,
-          CAB.CODPROJ,
-          PAR.NOMEPARC,
-          PRJ.IDENTIFICACAO AS PROJETO,
-          NVL(MKP.ICMS, 0) AS ICMS,
-          NVL(MKP.SGA, 0) AS SGA,
-          NVL(MKP.LUCRO, 0) AS LUCRO,
-          NVL(MKP.PISCOFINS, 0) AS PISCOFINS,
-          NVL(MKP.IRPJCSLL, 0) AS IRPJCSLL,
-          NVL(MKP.OUTROS, 0) AS OUTROS,
-          NVL(MP.TOTAL_MP, 0) AS T_MP,
-          NVL(CIP.TOTAL_CIP, 0) AS T_CIP,
-          NVL(OUTR.TOTAL_OUTROS, 0) AS T_OUTR,
-          NVL(FRE.VLRFRETE, 0) AS T_FRETE,
-          NVL(AMO.VLRAMORTIZACAO, 0) AS T_AMORT,
-          NVL(AMO.QTDAMORTIZACAO, 0) AS QTD_AMORT,
-          NVL(AMO.VLRUNITAMOR, 0) AS VLRUNITAMOR,
-          (NVL(MP.TOTAL_MP, 0) + NVL(CIP.TOTAL_CIP, 0) + NVL(OUTR.TOTAL_OUTROS, 0)) AS CUSTOBASE,
-          ((NVL(MP.TOTAL_MP, 0) + NVL(CIP.TOTAL_CIP, 0) + NVL(OUTR.TOTAL_OUTROS, 0)) * (1 + NVL(CAB.SCRAP, 0)/100) + NVL(FRE.VLRFRETE, 0) + NVL(AMO.VLRUNITAMOR, 0)) AS CUSTO_TOTAL_COM_IMPACTOS,
-          (NVL(MKP.ICMS, 0) + NVL(MKP.SGA, 0) + NVL(MKP.LUCRO, 0) + NVL(MKP.PISCOFINS, 0) + NVL(MKP.IRPJCSLL, 0) + NVL(MKP.OUTROS, 0)) AS PERC_TOTAL_MKP,
-          CAB.TEMPO,
-          PRO.IMAGEM
-   FROM AD_ZBVCAB CAB
-   LEFT JOIN TGFPAR PAR ON PAR.CODPARC = CAB.CODPARC
-   LEFT JOIN TCSPRJ PRJ ON PRJ.CODPROJ = CAB.CODPROJ
-   LEFT JOIN MKP ON MKP.NUNICO = CAB.NUNICO
-   LEFT JOIN MP ON MP.NUNICO = CAB.NUNICO
-   LEFT JOIN CIP ON CIP.NUNICO = CAB.NUNICO
-   LEFT JOIN OUTR ON OUTR.NUNICO = CAB.NUNICO
-   LEFT JOIN FRE ON FRE.NUNICO = CAB.NUNICO
-   LEFT JOIN AMO ON AMO.NUNICO = CAB.NUNICO
-   LEFT JOIN TGFPRO PRO ON PRO.CODPROD = CAB.CODPROD
-   WHERE CAB.NUNICO = $P{PK_NUNICO}
+		<![CDATA[WITH MKP AS (
+    SELECT *
+    FROM (
+        SELECT M.*,
+               ROW_NUMBER() OVER (PARTITION BY NUNICO ORDER BY SEQ DESC) RN
+        FROM AD_ZBVMKP M
+    )
+    WHERE RN = 1
 ),
-     RESULTADOS AS
-  (SELECT B.*,
-          ROUND(1 / NULLIF(1 - (B.PERC_TOTAL_MKP / 100), 0), 10) AS FATOR,
-          ROUND(B.CUSTO_TOTAL_COM_IMPACTOS * ((1 / NULLIF(1 - (B.PERC_TOTAL_MKP / 100), 0)) - 1), 10) AS VLR_TOTAL_MKP,
-          ROUND(B.CUSTO_TOTAL_COM_IMPACTOS * (1 / NULLIF(1 - (B.PERC_TOTAL_MKP / 100), 0)), 10) AS PRECO_VENDA,
-          ROUND(B.CUSTO_TOTAL_COM_IMPACTOS * (B.SGA/100), 4) AS VLR_SGA_CALC,
-          ROUND(B.CUSTO_TOTAL_COM_IMPACTOS * (NVL(B.LUCRO, 0)/100), 4) AS VLR_LUCRO_CALC
-   FROM CALCULOS_BASE B)
-SELECT R.NUNICO,
-       R.PESO,
-       R.CODPARC || ' - ' || R.NOMEPARC AS CLIENTE,
-       R.DESENHO,
-       NVL(R.SCRAP, 0) AS SCRAP,
-       R.DENOMINACAO,
-       R.PROJETO,
-       R.VOLUME,
-       R.NIVEL,
-       R.MOEDA,
-       R.REVISAO,
-       R.DATA,
-       R.OBSERVACAO,
-       EMP.RAZAOSOCIAL,
-       R.ICMS,
-       R.SGA,
-       R.LUCRO,
-       R.PISCOFINS,
-       R.IRPJCSLL,
-       R.OUTROS,
-       ROUND(R.T_MP, 2) AS TOTAL_MP,
-       ROUND(R.T_CIP, 2) AS TOTAL_CIP,
-       ROUND(R.T_OUTR, 2) AS TOTAL_OUTROS,
-       R.CUSTOBASE AS SUBTOTAL,
-       ROUND(R.CUSTOBASE * (NVL(R.SCRAP, 0)/100), 2) AS VLRSCRAP,
-       ROUND(R.T_FRETE, 2) AS VLRFRETE,
-       ROUND(R.T_AMORT, 2) AS VLRAMORTIZACAO,
-       ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 2) AS CUSTO_BASE,
-       R.VLR_SGA_CALC + R.VLR_LUCRO_CALC AS VLR_SGA_LUCRO,
-       ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC AS PRECOSEMIMPOSTO,
-       (1/(1-(R.ICMS+R.PISCOFINS+R.IRPJCSLL+R.OUTROS)/100)) AS FATOR,
-       (ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC)*((1/(1-(R.ICMS+R.PISCOFINS+R.IRPJCSLL+R.OUTROS)/100))-1) AS VLR_TOTAL_MKP,
-       ((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0) AS PRECOCOMIMPOSTO,
-       R.VLR_SGA_CALC AS VLR_SGA,
-       R.VLR_LUCRO_CALC AS VLR_LUCRO,
-       ((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0)*(NVL(R.ICMS, 0)/100) AS VLR_ICMS,
-       (((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0)-((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0)*(NVL(R.ICMS, 0)/100)) *(NVL(R.PISCOFINS, 0)/100) AS VLR_PISCOFINS,
-       ((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0)*(NVL(R.IRPJCSLL, 0)/100) AS VLR_IRPJCSLL,
-       ((ROUND(R.CUSTO_TOTAL_COM_IMPACTOS, 4) + R.VLR_SGA_CALC + R.VLR_LUCRO_CALC) / NULLIF(1 - (NVL(R.ICMS, 0)/100), 0)) / NULLIF(1 - (NVL(R.PISCOFINS+R.IRPJCSLL+R.OUTROS, 0)/100), 0)*(NVL(R.OUTROS, 0)/100) AS VLR_OUTROS,
-       R.QTD_AMORT,
-       R.VLRUNITAMOR,
-       R.TEMPO,
-       R.IMAGEM
 
+EMPRESA AS (
+    SELECT RAZAOSOCIAL
+    FROM TSIEMP
+    WHERE CODEMP = 1
+),
+
+MP AS (
+    SELECT
+        NUNICO,
+        SUM(
+ NVL((QTDBRUTO*VLRUNITSEMICMS),0)-(NVL(QTDBRUTO-QTDLIQUIDO,0)*NVL(VLRUNIT,0))+NVL(VLRFRETE,0)
+        ) AS TOTAL_MP
+    FROM AD_ZBVITE
+    GROUP BY NUNICO
+),
+
+CIP AS (
+    SELECT
+        NUNICO,
+       SUM(nvl(VLRCUSTOPROCESSO,0)*NVL(QTD,0)) AS TOTAL_CIP
+    FROM AD_ZBVCIP
+    GROUP BY NUNICO
+),
+
+OUTR AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL((QUANTIDADE * VLRUNIT) + VLRFRETE, 0)
+        ) AS TOTAL_OUTROS
+    FROM AD_ZBVOUT
+    GROUP BY NUNICO
+),
+
+FRE AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL((DISTANCIA * CUSTOKM) / NULLIF(QTDPECAS, 0), 0)
+        ) AS VLRFRETE
+    FROM AD_ZBVFRE
+    GROUP BY NUNICO
+),
+
+AMO AS (
+    SELECT
+        NUNICO,
+        SUM(
+            NVL(VLRTOT / NULLIF(QTDPECA, 0), 0)
+        ) AS VLRAMORTIZACAO
+    FROM AD_ZBVAMO
+    GROUP BY NUNICO
+),
+
+CALCULOS_BASE AS (
+
+    SELECT
+        CAB.NUNICO,
+        CAB.PESO,
+        CAB.DESENHO,
+        CAB.SCRAP,
+        CAB.DENOMINACAO,
+        CAB.VOLUME,
+        CAB.NIVEL,
+        CAB.MOEDA,
+        CAB.REVISAO,
+        CAB.DATA,
+        CAB.OBSERVACAO,
+        CAB.CODPARC,
+        CAB.CODPROJ,
+
+        PAR.NOMEPARC,
+        PRJ.IDENTIFICACAO AS PROJETO,
+
+        NVL(MKP.ICMS,0)      AS ICMS,
+        NVL(MKP.SGA,0)       AS SGA,
+        NVL(MKP.LUCRO,0)     AS LUCRO,
+        NVL(MKP.PISCOFINS,0) AS PISCOFINS,
+        NVL(MKP.IRPJCSLL,0)  AS IRPJCSLL,
+        NVL(MKP.OUTROS,0)    AS OUTROS,
+
+        NVL(MP.TOTAL_MP,0)      AS T_MP,
+        NVL(CIP.TOTAL_CIP,0)    AS T_CIP,
+        NVL(OUTR.TOTAL_OUTROS,0) AS T_OUTR,
+        NVL(FRE.VLRFRETE,0)     AS T_FRETE,
+        NVL(AMO.VLRAMORTIZACAO,0) AS T_AMORT,
+
+        (
+            NVL(MP.TOTAL_MP,0)
+            + NVL(CIP.TOTAL_CIP,0)
+            + NVL(OUTR.TOTAL_OUTROS,0)
+        ) AS CUSTOBASE,
+
+        (
+            (
+                NVL(MP.TOTAL_MP,0)
+                + NVL(CIP.TOTAL_CIP,0)
+                + NVL(OUTR.TOTAL_OUTROS,0)
+            )
+            * (1 + NVL(CAB.SCRAP,0)/100)
+            + NVL(FRE.VLRFRETE,0)
+            + NVL(AMO.VLRAMORTIZACAO,0)
+        ) AS CUSTO_TOTAL_COM_IMPACTOS,
+
+        (
+            NVL(MKP.ICMS,0)
+          + NVL(MKP.SGA,0)
+          + NVL(MKP.LUCRO,0)
+          + NVL(MKP.PISCOFINS,0)
+          + NVL(MKP.IRPJCSLL,0)
+          + NVL(MKP.OUTROS,0)
+        ) AS PERC_TOTAL_MKP
+
+    FROM AD_ZBVCAB CAB
+         LEFT JOIN TGFPAR PAR
+            ON PAR.CODPARC = CAB.CODPARC
+         LEFT JOIN TCSPRJ PRJ
+            ON PRJ.CODPROJ = CAB.CODPROJ
+         LEFT JOIN MKP
+            ON MKP.NUNICO = CAB.NUNICO
+         LEFT JOIN MP
+            ON MP.NUNICO = CAB.NUNICO
+         LEFT JOIN CIP
+            ON CIP.NUNICO = CAB.NUNICO
+         LEFT JOIN OUTR
+            ON OUTR.NUNICO = CAB.NUNICO
+         LEFT JOIN FRE
+            ON FRE.NUNICO = CAB.NUNICO
+         LEFT JOIN AMO
+            ON AMO.NUNICO = CAB.NUNICO
+
+    WHERE CAB.NUNICO = $P{PK_NUNICO}
+),
+
+RESULTADOS AS (
+
+    SELECT
+
+        B.*,
+
+        ROUND(
+            1 /
+            NULLIF(
+                1 - (B.PERC_TOTAL_MKP / 100),
+                0
+            ),
+            10
+        ) AS FATOR,
+
+        ROUND(
+            B.CUSTO_TOTAL_COM_IMPACTOS
+            *
+            (
+                (
+                    1 /
+                    NULLIF(
+                        1 - (B.PERC_TOTAL_MKP / 100),
+                        0
+                    )
+                ) - 1
+            ),
+            10
+        ) AS VLR_TOTAL_MKP,
+
+        ROUND(
+            B.CUSTO_TOTAL_COM_IMPACTOS
+            *
+            (
+                1 /
+                NULLIF(
+                    1 - (B.PERC_TOTAL_MKP / 100),
+                    0
+                )
+            ),
+            10
+        ) AS PRECO_VENDA
+
+    FROM CALCULOS_BASE B
+)
+
+SELECT
+
+    R.NUNICO,
+    R.PESO,
+
+    R.CODPARC || ' - ' || R.NOMEPARC AS CLIENTE,
+
+    R.DESENHO,
+    NVL(R.SCRAP,0) AS SCRAP,
+    R.DENOMINACAO,
+    R.PROJETO,
+    R.VOLUME,
+    R.NIVEL,
+    R.MOEDA,
+    R.REVISAO,
+    R.DATA,
+    R.OBSERVACAO,
+
+    EMP.RAZAOSOCIAL,
+
+    R.ICMS,
+    R.SGA,
+    R.LUCRO,
+    R.PISCOFINS,
+    R.IRPJCSLL,
+    R.OUTROS,
+
+    ROUND(R.T_MP,2)      AS TOTAL_MP,
+    ROUND(R.T_CIP,2)     AS TOTAL_CIP,
+    ROUND(R.T_OUTR,2)    AS TOTAL_OUTROS,
+
+    R.CUSTOBASE AS SUBTOTAL,
+
+    ROUND(
+        R.CUSTOBASE * (NVL(R.SCRAP,0)/100),
+        2
+    ) AS VLRSCRAP,
+
+    ROUND(R.T_FRETE,2) AS VLRFRETE,
+    ROUND(R.T_AMORT,2) AS VLRAMORTIZACAO,
+
+    ROUND(R.CUSTO_TOTAL_COM_IMPACTOS,2) AS CUSTO_BASE,
+
+    ROUND(
+        R.PRECO_VENDA
+        *
+        (
+            (NVL(R.SGA,0) + NVL(R.LUCRO,0))
+            / 100
+        ),
+        2
+    ) AS VLR_SGA_LUCRO,
+
+    ROUND(
+        R.CUSTO_TOTAL_COM_IMPACTOS
+        +
+        (
+            R.PRECO_VENDA
+            *
+            (
+                (NVL(R.SGA,0) + NVL(R.LUCRO,0))
+                / 100
+            )
+        ),
+        2
+    ) AS PRECOSEMIMPOSTO,
+
+    ROUND(R.FATOR,5) AS FATOR,
+
+    ROUND(R.VLR_TOTAL_MKP,2) AS VLR_TOTAL_MKP,
+
+    ROUND(R.PRECO_VENDA,2) AS PRECOCOMIMPOSTO,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.SGA,0)/100) VLR_SGA,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.LUCRO,0)/100) VLR_LUCRO,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.ICMS,0)/100) VLR_ICMS,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.PISCOFINS,0)/100) VLR_PISCOFINS,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.IRPJCSLL,0)/100) VLR_IRPJCSLL,
+     ROUND(R.PRECO_VENDA,2)*(NVL(R.OUTROS,0)/100) VLR_OUTROS
 
 FROM RESULTADOS R
 CROSS JOIN EMPRESA EMP]]>
@@ -187,16 +316,13 @@ CROSS JOIN EMPRESA EMP]]>
 	<field name="VLR_IRPJCSLL" class="java.math.BigDecimal"/>
 	<field name="VLR_OUTROS" class="java.math.BigDecimal"/>
 	<field name="VLR_SGA_LUCRO" class="java.math.BigDecimal"/>
-	<field name="QTD_AMORT" class="java.math.BigDecimal"/>
-	<field name="VLRUNITAMOR" class="java.math.BigDecimal"/>
-	<field name="TEMPO" class="java.lang.String"/>
-	<field name="IMAGEM" class="java.io.InputStream"/>
 	<variable name="TOTALMP" class="java.math.BigDecimal"/>
 	<variable name="TOTALPROCESSO" class="java.math.BigDecimal"/>
 	<variable name="TOTALOUTROS" class="java.math.BigDecimal"/>
+	<variable name="TOTALAMORTIZACAO" class="java.math.BigDecimal"/>
 	<variable name="TOTALFRETE" class="java.math.BigDecimal"/>
 	<variable name="PERCENTUALMKP" class="java.math.BigDecimal">
-		<variableExpression><![CDATA[($F{ICMS}).add($F{PISCOFINS}).add($F{IRPJCSLL}).add($F{OUTROS})]]></variableExpression>
+		<variableExpression><![CDATA[$F{SGA}.add($F{ICMS}).add($F{LUCRO}).add($F{PISCOFINS}).add($F{IRPJCSLL}).add($F{OUTROS})]]></variableExpression>
 	</variable>
 	<variable name="TOTALMKP" class="java.math.BigDecimal">
 		<variableExpression><![CDATA[(
@@ -308,27 +434,24 @@ CROSS JOIN EMPRESA EMP]]>
         )
 )]]></variableExpression>
 	</variable>
-	<variable name="TOTALAMORTIZACAO" class="java.math.BigDecimal" calculation="Sum">
-		<variableExpression><![CDATA[$F{VLRUNITAMOR}]]></variableExpression>
-	</variable>
 	<title>
 		<band height="217">
 			<staticText>
-				<reportElement x="0" y="0" width="404" height="18"/>
+				<reportElement x="0" y="0" width="432" height="18"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" size="14" isBold="true"/>
 				</textElement>
 				<text><![CDATA[COST BREAKDOWN - CDB]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="405" y="1" width="150" height="18"/>
+				<reportElement x="433" y="1" width="122" height="18"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Cotação Nº:]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="1" y="17" width="403" height="25"/>
+				<reportElement x="1" y="17" width="431" height="25"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="14" isBold="true"/>
 				</textElement>
@@ -341,12 +464,15 @@ CROSS JOIN EMPRESA EMP]]>
 				<reportElement x="1" y="0" width="554" height="1"/>
 			</line>
 			<textField>
-				<reportElement x="404" y="19" width="151" height="25"/>
+				<reportElement x="433" y="19" width="122" height="25"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="12" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.Integer"><![CDATA[$F{NUNICO}]]></textFieldExpression>
 			</textField>
+			<line>
+				<reportElement x="433" y="19" width="121" height="1"/>
+			</line>
 			<line>
 				<reportElement x="555" y="1" width="1" height="42"/>
 			</line>
@@ -354,62 +480,62 @@ CROSS JOIN EMPRESA EMP]]>
 				<reportElement x="0" y="0" width="1" height="43"/>
 			</line>
 			<line>
-				<reportElement x="404" y="0" width="1" height="42"/>
+				<reportElement x="432" y="1" width="1" height="42"/>
 			</line>
 			<line>
 				<reportElement x="0" y="41" width="1" height="168"/>
 			</line>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="66" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="66" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[DESENHO:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="84" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="84" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[DENOMINAÇÃO:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="102" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="102" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[PROJETO:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="120" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="120" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[VOLUME ANUAL:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="138" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="138" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[NÍVEL ECONÔMICO:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="156" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="156" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[MOEDA:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="174" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="174" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<text><![CDATA[REVISÃO:]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="192" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="192" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
@@ -419,107 +545,107 @@ CROSS JOIN EMPRESA EMP]]>
 				<reportElement x="0" y="210" width="556" height="1"/>
 			</line>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="48" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="48" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CLIENTE}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="66" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="66" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESENHO}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="84" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="84" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DENOMINACAO}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="102" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="102" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="8" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{PROJETO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="120" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="120" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VOLUME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="138" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="138" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{NIVEL}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="156" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="156" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{MOEDA}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="174" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="174" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{REVISAO}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement mode="Opaque" x="107" y="192" width="160" height="15" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="115" y="192" width="200" height="15" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DATA}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement mode="Opaque" x="405" y="46" width="149" height="18" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="322" y="46" width="230" height="18" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10" isBold="true"/>
 				</textElement>
 				<text><![CDATA[OBSERVAÇÕES:]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="410" y="68" width="140" height="102"/>
+				<reportElement x="322" y="71" width="232" height="115"/>
 				<textElement>
-					<font fontName="Arial" size="8"/>
+					<font fontName="Arial"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBSERVACAO}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement mode="Opaque" x="406" y="174" width="69" height="32" backcolor="#CCCCCC"/>
+				<reportElement mode="Opaque" x="321" y="188" width="113" height="18" backcolor="#CCCCCC"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Peso do Produto (KG):]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="478" y="174" width="74" height="32"/>
+				<reportElement x="434" y="188" width="118" height="18"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font fontName="Arial"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{PESO}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement x="405" y="170" width="150" height="1"/>
+				<reportElement x="319" y="185" width="236" height="1"/>
 			</line>
 			<line>
-				<reportElement x="404" y="66" width="150" height="1"/>
+				<reportElement x="319" y="66" width="235" height="1"/>
 			</line>
 			<line>
-				<reportElement x="475" y="171" width="1" height="39"/>
+				<reportElement x="434" y="186" width="1" height="24"/>
 			</line>
 			<staticText>
-				<reportElement mode="Opaque" x="2" y="48" width="100" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<reportElement mode="Opaque" x="2" y="48" width="110" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
 				<textElement verticalAlignment="Middle">
 					<font fontName="Arial" isBold="true"/>
 				</textElement>
@@ -529,17 +655,7 @@ CROSS JOIN EMPRESA EMP]]>
 				<reportElement x="555" y="37" width="1" height="174"/>
 			</line>
 			<line>
-				<reportElement x="270" y="43" width="1" height="168"/>
-			</line>
-			<line>
-				<reportElement x="404" y="43" width="1" height="168"/>
-			</line>
-			<image>
-				<reportElement x="280" y="48" width="114" height="158"/>
-				<imageExpression class="java.io.InputStream"><![CDATA[$F{IMAGEM}]]></imageExpression>
-			</image>
-			<line>
-				<reportElement x="404" y="19" width="150" height="1"/>
+				<reportElement x="318" y="43" width="1" height="164"/>
 			</line>
 		</band>
 	</title>
@@ -577,120 +693,16 @@ CROSS JOIN EMPRESA EMP]]>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "OUTROS_CUSTOS.jasper"]]></subreportExpression>
 			</subreport>
 		</band>
-		<band height="41">
-			<staticText>
-				<reportElement mode="Opaque" x="0" y="1" width="556" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
-				<box>
-					<topPen lineWidth="1.0" lineColor="#000000"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" isBold="true"/>
-				</textElement>
-				<text><![CDATA[AMORTIZAÇÃO]]></text>
-			</staticText>
-			<staticText>
-				<reportElement mode="Opaque" x="0" y="16" width="83" height="23" backcolor="#CCCCCC"/>
-				<box>
-					<topPen lineWidth="1.0" lineStyle="Solid"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[VALOR TOTAL À AMORTIZAR]]></text>
-			</staticText>
-			<textField pattern="¤ #,##0.00">
-				<reportElement x="83" y="16" width="81" height="23"/>
-				<box>
-					<topPen lineWidth="1.0"/>
-					<bottomPen lineWidth="1.0"/>
-					<rightPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8"/>
-				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRAMORTIZACAO}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement mode="Opaque" x="164" y="16" width="79" height="23" backcolor="#CCCCCC"/>
-				<box>
-					<topPen lineWidth="1.0" lineStyle="Solid"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[QUANT. PEÇAS P/ AMORT.]]></text>
-			</staticText>
-			<textField pattern="#,##0.00">
-				<reportElement x="243" y="16" width="81" height="23"/>
-				<box>
-					<topPen lineWidth="1.0"/>
-					<bottomPen lineWidth="1.0"/>
-					<rightPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8"/>
-				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTD_AMORT}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement mode="Opaque" x="324" y="16" width="46" height="23" backcolor="#CCCCCC"/>
-				<box>
-					<topPen lineWidth="1.0" lineStyle="Solid"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[TEMPO ESTIMADO]]></text>
-			</staticText>
-			<textField pattern="" isBlankWhenNull="true">
-				<reportElement x="370" y="16" width="55" height="23"/>
-				<box>
-					<topPen lineWidth="1.0"/>
-					<bottomPen lineWidth="1.0"/>
-					<rightPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8"/>
-				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{TEMPO}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement mode="Opaque" x="425" y="16" width="64" height="23" backcolor="#CCCCCC"/>
-				<box>
-					<topPen lineWidth="1.0" lineStyle="Solid"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[CUSTO AMORTIZAÇÃO]]></text>
-			</staticText>
-			<textField pattern="¤ #,##0.00">
-				<reportElement x="489" y="16" width="67" height="23"/>
-				<box>
-					<topPen lineWidth="1.0"/>
-					<bottomPen lineWidth="1.0"/>
-					<rightPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="8"/>
-				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRUNITAMOR}]]></textFieldExpression>
-			</textField>
+		<band height="5">
+			<subreport>
+				<reportElement key="AMORTIZACAO" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="554" height="4" isRemoveLineWhenBlank="true"/>
+				<subreportParameter name="PK_NUNICO">
+					<subreportParameterExpression><![CDATA[$F{NUNICO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="V_CUSTO_TOTAL" toVariable="TOTALAMORTIZACAO"/>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "AMORTIZACAO.jasper"]]></subreportExpression>
+			</subreport>
 		</band>
 		<band height="5">
 			<subreport>
@@ -859,7 +871,7 @@ CROSS JOIN EMPRESA EMP]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="8"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRUNITAMOR}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRAMORTIZACAO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="¤ #,##0.00">
 				<reportElement x="436" y="84" width="118" height="15"/>
@@ -1378,15 +1390,65 @@ CUSTOS]]></text>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-  $V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="125" y="41" width="75" height="15"/>
@@ -1399,15 +1461,65 @@ CUSTOS]]></text>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-  $V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="200" y="41" width="60" height="15"/>
@@ -1420,15 +1532,65 @@ CUSTOS]]></text>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-  $V{TOTALOUTROS}== null ? java.math.BigDecimal.ZERO :$V{TOTALOUTROS}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="315" y="41" width="65" height="15"/>
@@ -1441,15 +1603,65 @@ CUSTOS]]></text>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
- $F{VLRUNITAMOR}== null ? java.math.BigDecimal.ZERO :  $F{VLRUNITAMOR}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="380" y="41" width="52" height="15"/>
@@ -1462,15 +1674,65 @@ CUSTOS]]></text>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
- $V{TOTALFRETE}== null ? java.math.BigDecimal.ZERO :  $V{TOTALFRETE}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="432" y="41" width="71" height="15"/>
@@ -1484,14 +1746,169 @@ CUSTOS]]></text>
 					<font fontName="Arial" size="10"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-$F{VLR_SGA_LUCRO}== null ? java.math.BigDecimal.ZERO : $F{VLR_SGA_LUCRO}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+(((
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.add(
+            ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+)
+.multiply(
+    java.math.BigDecimal.ONE.divide(
+        java.math.BigDecimal.ONE.subtract(
+            ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        ),
+        10,
+        java.math.RoundingMode.HALF_UP
+    )
+    .subtract(java.math.BigDecimal.ONE)
+).add((
+    ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+        .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+        .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+)
+.multiply(
+    java.math.BigDecimal.ONE.add(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)).add(($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})).add(($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}))).multiply(
+    ($F{SGA} == null ? java.math.BigDecimal.ZERO : $F{SGA})
+        .divide(
+            new java.math.BigDecimal("100"),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+)).add(((
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.add(
+            ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+)
+.multiply(
+    java.math.BigDecimal.ONE.divide(
+        java.math.BigDecimal.ONE.subtract(
+            ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        ),
+        10,
+        java.math.RoundingMode.HALF_UP
+    )
+    .subtract(java.math.BigDecimal.ONE)
+).add((
+    ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+        .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+        .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+)
+.multiply(
+    java.math.BigDecimal.ONE.add(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)).add(($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})).add(($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}))).multiply(
+    ($F{LUCRO} == null ? java.math.BigDecimal.ZERO : $F{LUCRO})
+        .divide(
+            new java.math.BigDecimal("100"),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+))
+)
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+(
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.add(
+            ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+)
+.multiply(
+    java.math.BigDecimal.ONE.divide(
+        java.math.BigDecimal.ONE.subtract(
+            ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                .divide(
+                    new java.math.BigDecimal("100"),
+                    10,
+                    java.math.RoundingMode.HALF_UP
+                )
+        ),
+        10,
+        java.math.RoundingMode.HALF_UP
+    )
+    .subtract(java.math.BigDecimal.ONE)
+).add((
+    ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+        .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+        .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+)
+.multiply(
+    java.math.BigDecimal.ONE.add(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)).add(($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})).add(($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})),
+10,
+java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="503" y="41" width="52" height="15"/>
@@ -1504,18 +1921,10 @@ $F{VLR_SGA_LUCRO}== null ? java.math.BigDecimal.ZERO : $F{VLR_SGA_LUCRO}
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="10"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-  ($F{VLR_ICMS} == null ? java.math.BigDecimal.ZERO : $F{VLR_ICMS})
-    .add($F{VLR_PISCOFINS} == null ? java.math.BigDecimal.ZERO : $F{VLR_PISCOFINS})
-    .add($F{VLR_IRPJCSLL} == null ? java.math.BigDecimal.ZERO : $F{VLR_IRPJCSLL})
-    .add($F{VLR_OUTROS} == null ? java.math.BigDecimal.ZERO : $F{VLR_OUTROS})
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($F{ICMS} == null ? java.math.BigDecimal.ZERO : $F{ICMS})
+    .add($F{PISCOFINS} == null ? java.math.BigDecimal.ZERO : $F{PISCOFINS})
+    .add($F{IRPJCSLL} == null ? java.math.BigDecimal.ZERO : $F{IRPJCSLL})
+    .add($F{OUTROS} == null ? java.math.BigDecimal.ZERO : $F{OUTROS})]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00&apos;%&apos;" isBlankWhenNull="true">
 				<reportElement x="260" y="41" width="55" height="15"/>
@@ -1529,14 +1938,78 @@ $F{VLR_SGA_LUCRO}== null ? java.math.BigDecimal.ZERO : $F{VLR_SGA_LUCRO}
 					<font fontName="Arial" size="10"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[(
-  $F{VLRSCRAP}== null ? java.math.BigDecimal.ZERO : $F{VLRSCRAP}
-).divide(
-  ($F{PRECOCOMIMPOSTO} == null || $F{PRECOCOMIMPOSTO}.compareTo(java.math.BigDecimal.ZERO) == 0)
-    ? java.math.BigDecimal.ONE
-    : $F{PRECOCOMIMPOSTO},
-  10,
-  java.math.RoundingMode.HALF_UP
-).multiply(new java.math.BigDecimal("100"))]]></textFieldExpression>
+    (
+        ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+            .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+            .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+    )
+    .multiply(
+        ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+            .divide(
+                new java.math.BigDecimal("100"),
+                10,
+                java.math.RoundingMode.HALF_UP
+            )
+    )
+)
+.multiply(new java.math.BigDecimal("100"))
+.divide(
+    (
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+        .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+        .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE})
+    )
+    .multiply(
+        java.math.BigDecimal.ONE.divide(
+            java.math.BigDecimal.ONE.subtract(
+                ($V{PERCENTUALMKP} == null ? java.math.BigDecimal.ZERO : $V{PERCENTUALMKP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            ),
+            10,
+            java.math.RoundingMode.HALF_UP
+        )
+        .subtract(java.math.BigDecimal.ONE)
+    )
+    .add(
+        (
+            ($V{TOTALMP} == null ? java.math.BigDecimal.ZERO : $V{TOTALMP})
+                .add($V{TOTALPROCESSO} == null ? java.math.BigDecimal.ZERO : $V{TOTALPROCESSO})
+                .add($V{TOTALOUTROS} == null ? java.math.BigDecimal.ZERO : $V{TOTALOUTROS})
+        )
+        .multiply(
+            java.math.BigDecimal.ONE.add(
+                ($F{SCRAP} == null ? java.math.BigDecimal.ZERO : $F{SCRAP})
+                    .divide(
+                        new java.math.BigDecimal("100"),
+                        10,
+                        java.math.RoundingMode.HALF_UP
+                    )
+            )
+        )
+    )
+    .add($V{TOTALAMORTIZACAO} == null ? java.math.BigDecimal.ZERO : $V{TOTALAMORTIZACAO})
+    .add($V{TOTALFRETE} == null ? java.math.BigDecimal.ZERO : $V{TOTALFRETE}),
+    10,
+    java.math.RoundingMode.HALF_UP
+)]]></textFieldExpression>
 			</textField>
 		</band>
 	</pageFooter>

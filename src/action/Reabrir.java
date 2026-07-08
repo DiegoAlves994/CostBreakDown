@@ -28,6 +28,8 @@ public class Reabrir implements AcaoRotinaJava {
                         .set("CODUSUPENDENTE", null)
                         .set("DATAPENDENTE", null)
                         .set("CODUSUREABERTURA", codusu)
+                        .set("PRECOSEMIMP", null)
+                        .set("PRECOIMP", null)
                         .update();
 
                 ctx.setMensagemRetorno("Orçamento reaberto com sucesso!");

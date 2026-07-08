@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="EMBALAGEM" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="2.853116706110003"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="PK_NUNICO" class="java.lang.Integer" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[SELECT
+SEQ,
+DESCRICAO,
+RESPONSABILIDADE,
+PECAS,
+QTDMIN,
+PESO,
+LOTE
+
+ FROM AD_ZBVEMB
+WHERE NUNICO = $P{PK_NUNICO}]]>
+	</queryString>
+	<field name="SEQ" class="java.lang.Integer"/>
+	<field name="DESCRICAO" class="java.lang.String"/>
+	<field name="RESPONSABILIDADE" class="java.lang.String"/>
+	<field name="PECAS" class="java.math.BigDecimal"/>
+	<field name="QTDMIN" class="java.math.BigDecimal"/>
+	<field name="PESO" class="java.math.BigDecimal"/>
+	<field name="LOTE" class="java.math.BigDecimal"/>
+	<columnHeader>
+		<band height="36" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="1" width="555" height="15" forecolor="#FFFFFF" backcolor="#CC0000"/>
+				<box>
+					<topPen lineWidth="1.0" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[EMBALAGEM E LOGÍSTICA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="16" width="154" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DESCRIÇÃO DA EMBALAGEM]]></text>
+			</staticText>
+			<line>
+				<reportElement x="242" y="16" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="243" y="16" width="84" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[PEÇAS/EMBALAGEM]]></text>
+			</staticText>
+			<line>
+				<reportElement x="154" y="16" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="487" y="16" width="68" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[LOTE MÍNIMO (PEÇAS)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="1" width="1" height="34"/>
+			</line>
+			<line>
+				<reportElement x="462" y="16" width="1" height="19"/>
+			</line>
+			<line>
+				<reportElement x="486" y="16" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement mode="Opaque" x="155" y="16" width="87" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[RESPONSABILIDADE]]></text>
+			</staticText>
+			<line>
+				<reportElement x="327" y="16" width="1" height="19"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="406" y="16" width="80" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[PESO/EMBALAGEM (KG)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="554" y="1" width="1" height="35"/>
+			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="328" y="16" width="77" height="19" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[QUANT. MIN. DE EMBALAGENS/PEDIDO]]></text>
+			</staticText>
+			<line>
+				<reportElement x="405" y="16" width="1" height="19"/>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="155" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00" isBlankWhenNull="true">
+				<reportElement x="328" y="0" width="78" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDMIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00" isBlankWhenNull="true">
+				<reportElement x="406" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PESO}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="154" y="0" width="88" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RESPONSABILIDADE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00" isBlankWhenNull="true">
+				<reportElement x="487" y="0" width="68" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{LOTE}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="false">
+				<reportElement x="243" y="0" width="84" height="20"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PECAS}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

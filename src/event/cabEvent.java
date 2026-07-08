@@ -22,13 +22,12 @@ public class cabEvent implements EventoProgramavelJava {
 
     @Override
     public void beforeUpdate(PersistenceEvent persistenceEvent) throws Exception {
-        validaPendente(persistenceEvent);
+        validaPendenteUpdate(persistenceEvent);
     }
 
     @Override
     public void beforeDelete(PersistenceEvent persistenceEvent) throws Exception {
-        validaPendente(persistenceEvent);
-
+      validaPendenteDelete(persistenceEvent);
     }
 
     @Override
@@ -65,40 +64,55 @@ public class cabEvent implements EventoProgramavelJava {
         ResultSet rs = sql.executeQuery(getCodusu);
         BigDecimal newCodusu = null;
 
-        if (rs.next()){
+        try {
+            if (rs.next()){
 
-            newCodusu = rs.getBigDecimal("CODUSU");
+                newCodusu = rs.getBigDecimal("CODUSU");
 
-            JapeWrapper iteDAO = JapeFactory.dao("AD_ZBVCAB");
+                JapeWrapper iteDAO = JapeFactory.dao("AD_ZBVCAB");
 
-            ((FluidUpdateVO)((FluidUpdateVO)((FluidUpdateVO) iteDAO.prepareToUpdateByPK(
-                            new Object[]{nunico})
-                    .set("PENDENTE", "S"))
-                    .set("CODUSUINC",newCodusu))
-                    .set("DATA", new java.sql.Timestamp(System.currentTimeMillis())))                     .update();
+                ((FluidUpdateVO)((FluidUpdateVO)((FluidUpdateVO) iteDAO.prepareToUpdateByPK(
+                                new Object[]{nunico})
+                        .set("PENDENTE", "S"))
+                        .set("CODUSUINC",newCodusu))
+                        .set("DATA", new java.sql.Timestamp(System.currentTimeMillis())))                     .update();
 
+            }
+        } finally {
+            if (rs != null) {
+                rs.close();
+            }
         }
 
 
 
     }
 
-    private void validaPendente (PersistenceEvent ctx) throws Exception{
-
+    private void validaPendenteUpdate(PersistenceEvent ctx) throws Exception {
         DynamicVO oldVO = (DynamicVO) ctx.getOldVO();
         DynamicVO newVO = (DynamicVO) ctx.getVo();
 
         String newPendente = newVO.asString("PENDENTE");
         String oldPendente = oldVO.asString("PENDENTE");
 
-        if("N".equals(newPendente) && "N".equals(oldPendente)){
+        if ("N".equals(newPendente) && "N".equals(oldPendente)) {
             throw new Exception(
-                    "Este orçamento já foi processado e não permite alterações. Realize a reabertura e tente novamente!"
+                    "Este orçamento já foi marcado como não pendente e não permite alterações. Realize a reabertura e tente novamente!"
             );
-
-
         }
+    }
 
+    private void validaPendenteDelete(PersistenceEvent ctx) throws Exception {
+        DynamicVO oldVO = (DynamicVO) ctx.getVo();
+
+        String oldPendente = oldVO.asString("PENDENTE");
+
+        if ("N".equals(oldPendente)) {
+            throw new Exception(
+                    "Este orçamento já foi marcado como não pendente e não permite exclusão. Realize a reabertura e tente novamente!"
+            );
+        }
     }
 
 }
+
